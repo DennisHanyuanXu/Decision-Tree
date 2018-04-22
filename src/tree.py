@@ -13,7 +13,7 @@ class DecisionTree:
         self.value = value
         self.true_branch = true_branch
         self.false_branch = false_branch
-        # Classification result at current node
+        # Classification result at current node (majority class)
         # These three variables will change when building, evaluating or pruning a tree.
         self.result = result
         self.results = results
@@ -148,7 +148,8 @@ class DecisionTree:
                     true_set.append(data)
                 else:
                     false_set.append(data)
-        return cls.evaluate(tree.true_branch, true_set) + cls.evaluate(tree.false_branch, false_set)
+        return cls.evaluate(tree.true_branch, true_set) + \
+                cls.evaluate(tree.false_branch, false_set)
 
     @classmethod
     def reduced_error_pruning(cls, tree):
@@ -176,7 +177,7 @@ class DecisionTree:
                 cls._pessimistic_error(tree.false_branch)
 
     @classmethod
-    def pessimistic_pruning(cls, tree):
+    def top_down_pessimistic_pruning(cls, tree):
         # Top-down, left-to-right
         # Leaf node
         if not (tree.true_branch or tree.false_branch):
@@ -185,9 +186,32 @@ class DecisionTree:
         error_leaf = tree.error + 0.5
         error_subtree = cls._pessimistic_error(tree)
         p = 1 - error_subtree / sum(tree.results.values())
+        # p < 0 in few cases
+        p = 0 if p < 0 else p
+
         if error_leaf <= error_subtree + sqrt(error_subtree * p):
             tree.true_branch = None
             tree.false_branch = None
         else:
-            cls.pessimistic_pruning(tree.true_branch)
-            cls.pessimistic_pruning(tree.false_branch)
+            cls.top_down_pessimistic_pruning(tree.true_branch)
+            cls.top_down_pessimistic_pruning(tree.false_branch)
+
+    @classmethod
+    def bottom_up_pessimistic_pruning(cls, tree):
+        # Bottom-up, left-to-right
+        sum_ = sum(tree.results.values())
+        p = (1 + tree.error) / (2 + sum_)
+        # Laplace estimate
+        error_leaf = sum_ * (p + 1.15 * sqrt(p * (1 - p) / (sum_ + 2)))
+
+        # Leaf node
+        if not (tree.true_branch or tree.false_branch):
+            return error_leaf
+
+        error_subtree = cls.bottom_up_pessimistic_pruning(tree.true_branch) + \
+                        cls.bottom_up_pessimistic_pruning(tree.false_branch)
+        if error_leaf <= error_subtree:
+            tree.true_branch = None
+            tree.false_branch = None
+            return error_leaf
+        return error_subtree
