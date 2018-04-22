@@ -1,7 +1,7 @@
 #!/bin/env python
 #-*- encoding: utf-8 -*-
 
-from math import log
+from math import log, sqrt
 import utils
 
 
@@ -13,9 +13,9 @@ class DecisionTree:
         self.value = value
         self.true_branch = true_branch
         self.false_branch = false_branch
-        # Classification result at current node, determined while building the tree
+        # Classification result at current node
+        # These three variables will change when building, evaluating or pruning a tree.
         self.result = result
-        # Values assigned while pruning or testing
         self.results = results
         self.error = error
 
@@ -60,8 +60,13 @@ class DecisionTree:
         best_split = None
         cur_score = func(dataset)
         feature_cnt = len(dataset[0]) - 1
-        result = sorted(utils.count(dataset).items(), key=lambda x: x[1], \
-                        reverse=True)[0][0]
+
+        results = utils.count(dataset)
+        result = sorted(results.items(), key=lambda x: x[1], reverse=True)[0][0]
+        error = 0
+        for k, v in results.items():
+            if k != result:
+                error += v
 
         # Choose the best feature
         for i in range(feature_cnt):
@@ -81,21 +86,21 @@ class DecisionTree:
                     best_split = (true_set, false_set)
 
         if not best_gain:
-            return DecisionTree(result=result)
+            return DecisionTree(result=result, results=results, error=error)
 
         true_branch = cls.build_tree(best_split[0], func)
         false_branch = cls.build_tree(best_split[1], func)
         return DecisionTree(feature=best_feature[0], value=best_feature[1], \
-                    true_branch=true_branch, false_branch=false_branch, result=result)
+                    true_branch=true_branch, false_branch=false_branch, \
+                    result=result, results=results, error=error)
 
     @classmethod
     def plot_tree(cls, tree, headings):
 
         def tree_to_str(tree, indent='\t\t'):
             # General output
-            output = str(tree.result) + ' '
-            output += str(tree.results) + ' ' if tree.results else ''
-            output += 'err = ' + str(tree.error) + ' ' if tree.error else 'err = 0 '
+            output = str(tree.result) + ' ' + str(tree.results) + \
+                    ' err=' + str(tree.error)
 
             # Leaf node
             if not (tree.true_branch or tree.false_branch):
@@ -118,7 +123,7 @@ class DecisionTree:
         print(tree_to_str(tree))
 
     @classmethod
-    def count_error(cls, tree, dataset):
+    def evaluate(cls, tree, dataset):
         tree.results = utils.count(dataset)
         tree.error = 0
         for k, v in tree.results.items():
@@ -143,21 +148,46 @@ class DecisionTree:
                     true_set.append(data)
                 else:
                     false_set.append(data)
-        return cls.count_error(tree.true_branch, true_set) + cls.count_error(tree.false_branch, false_set)
+        return cls.evaluate(tree.true_branch, true_set) + cls.evaluate(tree.false_branch, false_set)
 
     @classmethod
     def reduced_error_pruning(cls, tree):
+        # Bottom-up, left-to-right
         # Leaf node
         if not (tree.true_branch or tree.false_branch):
-            error = tree.error
+            return tree.error
+        error_true = cls.reduced_error_pruning(tree.true_branch)
+        error_false = cls.reduced_error_pruning(tree.false_branch)
+
+        # Prune its subtree if it has less error
+        if tree.error <= error_true + error_false:
+            tree.true_branch = None
+            tree.false_branch = None
+            return tree.error
         else:
-            error_true = cls.reduced_error_pruning(tree.true_branch)
-            error_false = cls.reduced_error_pruning(tree.false_branch)
-            # Prune its subtree if it has less error
-            if tree.error <= error_true + error_false:
-                tree.true_branch = None
-                tree.false_branch = None
-                error = tree.error
-            else:
-                error = error_true + error_false
-        return error
+            return error_true + error_false
+
+    @classmethod
+    def _pessimistic_error(cls, tree):
+        # Leaf node
+        if not (tree.true_branch or tree.false_branch):
+            return tree.error + 0.5
+        return cls._pessimistic_error(tree.true_branch) + \
+                cls._pessimistic_error(tree.false_branch)
+
+    @classmethod
+    def pessimistic_pruning(cls, tree):
+        # Top-down, left-to-right
+        # Leaf node
+        if not (tree.true_branch or tree.false_branch):
+            return
+
+        error_leaf = tree.error + 0.5
+        error_subtree = cls._pessimistic_error(tree)
+        p = 1 - error_subtree / sum(tree.results.values())
+        if error_leaf <= error_subtree + sqrt(error_subtree * p):
+            tree.true_branch = None
+            tree.false_branch = None
+        else:
+            cls.pessimistic_pruning(tree.true_branch)
+            cls.pessimistic_pruning(tree.false_branch)
