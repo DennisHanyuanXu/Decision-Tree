@@ -215,3 +215,24 @@ class DecisionTree:
             tree.false_branch = None
             return error_leaf
         return error_subtree
+
+    @classmethod
+    def minimum_error_pruning(cls, tree):
+        # Bottom-up, left-to-right
+        sum_ = sum(tree.results.values())
+        # (n(error) + k - 1) / n(all) + k
+        error_leaf = (tree.error + 2) / (sum_ + 3)
+
+        # Leaf node
+        if not (tree.true_branch or tree.false_branch):
+            return sum_, error_leaf
+
+        sum_true, error_true = cls.minimum_error_pruning(tree.true_branch)
+        sum_false, error_false = cls.minimum_error_pruning(tree.false_branch)
+        error_subtree = sum_true / sum_ * error_true + sum_false / sum_ * error_false
+
+        if error_leaf <= error_subtree:
+            tree.true_branch = None
+            tree.false_branch = None
+            return sum_, error_leaf
+        return sum_, error_subtree
