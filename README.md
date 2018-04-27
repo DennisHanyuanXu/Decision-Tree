@@ -13,7 +13,7 @@ Several tree pruning methods were implemented in class `DecisionTree` to avoid o
 3. __Minimum Error Pruning__
 
 ### 1.3 Ensemble Methods
-For now, I just use the ensemble methods providied in [Scikit-Learn](http://scikit-learn.org/stable/modules/ensemble.html#bagging).
+For now, I just use the ensemble methods provided in [Scikit-Learn](http://scikit-learn.org/stable/modules/ensemble.html#bagging).
 1. __AdaBoost__
 2. __Bagging__
 3. __Random Forest__
