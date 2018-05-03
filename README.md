@@ -1,5 +1,5 @@
 # Decision Tree Project
-_Python implementation of decision tree for classification of meteorological dataset, includes pruning and ensemble methods_
+_Python implementation of decision tree for classification of meteorological dataset_
 
 ## 1. Models and Methods
 ### 1.1 Decision Tree Models
@@ -23,4 +23,4 @@ __Q__: Why is it recommended not to prune the trees while training random forest
 __A__: Pruning methods are usually used to prevent overfitting. As random forests do sampling with replacement along with random selection of features at each node for splitting the dataset, the correlation between the weak learners (individual tree models) would be low. So generally random forests can do a great job with just full depth. As for bagging, only __variance__ can be reduced through the bagging process, not bias (we can see high bias as underfitting and high variance as overfitting, see [bias-variance tradeoff](https://en.wikipedia.org/wiki/Bias%E2%80%93variance_tradeoff)). So we'd like the individual trees to have __lower bias__, in which case, overfitting trees are more than suitable.
 
 ## 2. Dataset
-The dataset contains hourly meteorological data from the paper _Assessing Beijing's PM 2.5 pollution: severity, weather impact, APEC and winter heating_.
+The dataset contains 40,000 entries of hourly meteorological data from the paper [Assessing Beijing's PM 2.5 pollution: severity, weather impact, APEC and winter heating](http://rspa.royalsocietypublishing.org/content/471/2182/20150257) and [China Meteorological Data Service Center](http://data.cma.cn/en/?r=site/index).
