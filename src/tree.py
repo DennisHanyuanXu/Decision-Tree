@@ -2,6 +2,8 @@
 #-*- encoding: utf-8 -*-
 
 from math import log, sqrt
+import copy
+import codecs
 import utils
 
 
@@ -13,7 +15,7 @@ class DecisionTree:
         self.value = value
         self.true_branch = true_branch
         self.false_branch = false_branch
-        # Classification result at current node (majority class)
+        # Classification result at current node (majority class).
         # These three variables will change when building, evaluating or pruning a tree.
         self.result = result
         self.results = results
@@ -95,9 +97,9 @@ class DecisionTree:
                     result=result, results=results, error=error)
 
     @classmethod
-    def plot_tree(cls, tree, headings):
+    def plot_tree(cls, tree, headings, filepath=None):
 
-        def tree_to_str(tree, indent='\t\t'):
+        def _tree_to_str(tree, indent='\t\t'):
             # General output
             output = str(tree.result) + ' ' + str(tree.results) + \
                     ' err=' + str(tree.error)
@@ -115,41 +117,54 @@ class DecisionTree:
                 decision = ' %s == %s ?' % (col, tree.value)
 
             true_branch = indent + 'yes -> ' + \
-                tree_to_str(tree.true_branch, indent + '\t\t')
+                _tree_to_str(tree.true_branch, indent + '\t\t')
             false_branch = indent + 'no  -> ' + \
-                tree_to_str(tree.false_branch, indent + '\t\t')
+                _tree_to_str(tree.false_branch, indent + '\t\t')
             return output + decision + '\n' + true_branch + '\n' + false_branch
 
-        print(tree_to_str(tree))
+        str_tree = _tree_to_str(tree)
+
+        if filepath:
+            with codecs.open(filepath, 'w', encoding='utf-8') as f:
+                f.write(str_tree)
+        else:
+            print(str_tree)
 
     @classmethod
     def evaluate(cls, tree, dataset):
-        tree.results = utils.count(dataset)
-        tree.error = 0
-        for k, v in tree.results.items():
-            if k != tree.result:
-                tree.error += v
 
-        # Leaf node
-        if not (tree.true_branch or tree.false_branch):
-            return tree.error
+        def _evaluate(eval_tree, dataset):
+            eval_tree.results = utils.count(dataset)
+            eval_tree.error = 0
+            for k, v in eval_tree.results.items():
+                if k != eval_tree.result:
+                    eval_tree.error += v
 
-        true_set = []
-        false_set = []
-        for data in dataset:
-            v = data[tree.feature]
-            if isinstance(v, int) or isinstance(v, float):
-                if v >= tree.value:
-                    true_set.append(data)
+            # Leaf node
+            if not (eval_tree.true_branch or eval_tree.false_branch):
+                return eval_tree.error
+
+            true_set = []
+            false_set = []
+            for data in dataset:
+                v = data[eval_tree.feature]
+                if isinstance(v, int) or isinstance(v, float):
+                    if v >= eval_tree.value:
+                        true_set.append(data)
+                    else:
+                        false_set.append(data)
                 else:
-                    false_set.append(data)
-            else:
-                if v == tree.value:
-                    true_set.append(data)
-                else:
-                    false_set.append(data)
-        return cls.evaluate(tree.true_branch, true_set) + \
-                cls.evaluate(tree.false_branch, false_set)
+                    if v == eval_tree.value:
+                        true_set.append(data)
+                    else:
+                        false_set.append(data)
+            return cls.evaluate(eval_tree.true_branch, true_set) + \
+                    cls.evaluate(eval_tree.false_branch, false_set)
+
+        # Deepcopy the tree to store test set info
+        eval_tree = copy.deepcopy(tree)
+
+        return _evaluate(eval_tree, dataset)
 
     @classmethod
     def count_leaves(cls, tree):

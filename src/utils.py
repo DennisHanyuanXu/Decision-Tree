@@ -26,7 +26,7 @@ def convert_type(s):
 
 
 def load_dataset():
-    reader = csv.reader(open(conf.filepath, 'rt'))
+    reader = csv.reader(open(conf.dataset_filepath, 'rt'))
 
     headings = dict()
     for i, heading in enumerate(next(reader)):
