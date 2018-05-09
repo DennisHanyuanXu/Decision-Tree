@@ -152,6 +152,12 @@ class DecisionTree:
                 cls.evaluate(tree.false_branch, false_set)
 
     @classmethod
+    def count_leaves(cls, tree):
+        if not (tree.true_branch or tree.false_branch):
+            return 1
+        return cls.count_leaves(tree.true_branch) + cls.count_leaves(tree.false_branch)
+
+    @classmethod
     def reduced_error_pruning(cls, tree):
         # Bottom-up, left-to-right
         # Leaf node
